@@ -1,0 +1,79 @@
+import csv
+import json
+import math
+import matplotlib.pyplot as plt
+import numpy as np
+ 
+ 
+#open csv file containing polygon vertices
+with open('a3nh4001_24001_4000_4000_0.2457_1-features.csv', 'r') as f:
+    csvcontents = f.read().splitlines()
+ 
+#drop the headers
+csvcontents = csvcontents[1:]
+ 
+#loop through the rows and replace the "silly ":"" with , so json can read it in
+ 
+ 
+for index, value in enumerate(csvcontents):
+    #format each row into a string that can be read by json
+    csvcontents[index] = '[' + csvcontents[index].replace(':',',') + ']'
+    #use json to convert the current row into an actual 2D array
+    csvcontents[index] = json.loads(csvcontents[index])
+ 
+##declare new array that will house all our rows of coordinate pair arrays.
+## Allnucleii looks like "[[[6348, 12926], [6346, 12928], [6346, 12931], [6345, 12932],..." etc
+## Allnucleii[0] looks like "[[6348, 12926], [6346, 12928], [6346, 12931], [6345, 12932],...." etc
+allnucleii = []
+ 
+#loop through each nucleus, one by one
+for nucleusindex, nucleus in enumerate(csvcontents):
+ 
+    #declare an array variable to contain information about just the nucleus we are looking at (current loop)
+    currentnucleusrow = []
+ 
+    #loop through all the coordinate values one by one
+    for coordinateindex, coordinate in enumerate(nucleus[2]):
+ 
+        #declare an array variable to contain information about just the coordinate pair we are looking at (nucleus[2] becuase we are looking at the third item in the current nucleus row (index goes 0,1,2))
+        currentcoordinatepair = []
+ 
+        #convert the current coordinate we are studying from a float to an integer and set the value of the corresponding coordinate in the csvcontents array to this integer
+        csvcontents[nucleusindex][2][coordinateindex] = int(coordinate)
+ 
+        #if the current coordinate is not the very first coordinate of the nucleus (coordinateindex 0) and the next index in the sequence is a multiple of 2...
+        if coordinateindex != 0 and (coordinateindex + 1) % 2 == 0:
+            # ...set the current coordinate pair array that we set earlier to an array with the last coordinate in the sequence as the first item and the current coordinate as the second value
+            currentcoordinatepair = [nucleus[2][coordinateindex-1],nucleus[2][coordinateindex]]
+ 
+            #append the current coordinate pair to the current nucleus row        
+            currentnucleusrow.append(currentcoordinatepair)
+ 
+    #Finally, append the current nucleus row to the master array of all nucleii data
+    allnucleii.append(currentnucleusrow)
+ 
+#open a new csv file to write to
+with open('a3nhstep1.csv', 'w') as f:
+    wr = csv.writer(f, dialect='excel')
+    ##loop through each nucleus
+    for nucleus in allnucleii:
+ 
+        ##Every time we start looking at a new nucleus, we will define a blank nucleusdistances array
+        nucleusdistances = []
+ 
+        ##assign index to each pair of points in a nucleus with the enumerate function
+        for pairindex, coordinatepair in enumerate(nucleus):
+ 
+            p = coordinatepair
+            ##if p is not the first point in the nucleus array, then assign q as the point before p
+            if pairindex != 0:
+           
+                q = nucleus[pairindex - 1]
+ 
+            else:
+                ##otherwise if p is the first index in the nucleus array, then make q the last point in order to close the polygon (get the final distance between 2 adjacent points)
+                q = nucleus[-1]
+            #append this distance to the row in the array
+            nucleusdistances.append(math.dist(p,q))
+        #write this array as a new row in the output csv file
+        wr.writerow(nucleusdistances)
