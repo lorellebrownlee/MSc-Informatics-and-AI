@@ -1,0 +1,129 @@
+from scipy.cluster.vq import vq, kmeans, whiten
+import matplotlib.pyplot as plt
+import numpy as np
+from numpy import array
+import json
+import math
+import csv
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+import pandas as pd
+from sklearn import metrics
+from sklearn import neighbors
+from sklearn.neighbors import NearestNeighbors
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.neighbors import KDTree
+ 
+ 
+with open('a3nh4001_24001_4000_4000_0.2457_1-features.csv', 'r') as f:
+    csvcontents = f.read().splitlines()
+ 
+#drop the headers
+ 
+csvcontents = csvcontents[1:]
+ 
+#loop through the rows and replace the silly : with , so json can read it in
+ 
+for index, value in enumerate(csvcontents):
+    #format each row into a string that can be read by json
+    csvcontents[index] = '[' + csvcontents[index].replace(':',',') + ']'
+    #use json to convert the current row into an actual 2D array
+    csvcontents[index] = json.loads(csvcontents[index])
+ 
+##declare new array that will house all our rows of coordinate pair arrays.
+## Allnucleii looks like "[[[6348, 12926], [6346, 12928], [6346, 12931], [6345, 12932],..." etc
+## Allnucleii[0] looks like "[[6348, 12926], [6346, 12928], [6346, 12931], [6345, 12932],...." etc
+ 
+allnucleii = []
+ 
+#loop through each nucleus, one by one
+for nucleusindex, nucleus in enumerate(csvcontents):
+ 
+    #declare an array variable to contain information about just the nucleus we are looking at (current loop)
+    currentnucleusrow = []
+ 
+    #loop through all the coordinate values one by one
+    for coordinateindex, coordinate in enumerate(nucleus[2]):
+ 
+        #declare an array variable to contain information about just the coordinate pair we are looking at (nucleus[2] becuase we are looking at the third item in the current nucleus row (index goes 0,1,2))
+        currentcoordinatepair = []
+ 
+        #make the current coordinate we are studying an int (it was a float) and set the value of the corresponding coordinate in the csvcontents array to the int
+        csvcontents[nucleusindex][2][coordinateindex] = int(coordinate)
+ 
+        #if the current coordinate is not the very first coordinate of the nucleus (coordinateindex 0) and the next index in the sequence is a multiple of 2...
+        if coordinateindex != 0 and (coordinateindex + 1) % 2 == 0:
+            # ...set the current coordinate pair array that we set earlier to and array with the last coordinate in the sequence as the first item and the current coordinate as the second value
+            currentcoordinatepair = [nucleus[2][coordinateindex-1],nucleus[2][coordinateindex]]
+ 
+            #append the current coordinate pair to the current nucleus row        
+            currentnucleusrow.append(currentcoordinatepair)
+ 
+    #Finally, append the current nucleus row to the master array of all nucleii data
+    currentnucleusrow.append(currentnucleusrow[0])
+    allnucleii.append(currentnucleusrow)
+ 
+#define new empty arrays
+centroids =[]
+indices =[]
+nuclearindices = []
+ 
+#loop through each nucleus again one by one
+for nucindex, nuc in enumerate(allnucleii):
+ 
+    #convert contents of each nucleus array into a numpy array
+    danucleus = np.array(nuc)
+ 
+    #transpose the numpy array
+    X,Y = danucleus.T
+ 
+    #calculate approximate centroid of each nucleus
+    centroid = round(sum(X) / len(danucleus)), round(sum(Y) / len(danucleus))
+ 
+    #add each centroid to list of centroids  
+    centroids.append(centroid)
+ 
+    #define kdtree
+    tree = KDTree(centroids, leaf_size=2)
+ 
+#use kdtree algorithm to find two nearest neighbours based on centroid location
+dist, ind = tree.query(centroids, k=3)
+ 
+#open new csv file to write results to
+with open('a3nhstep1.csv', 'r') as q:
+    csvcontents2 = q.read().splitlines()
+ 
+#drop the headers
+csvcontents2 = csvcontents2[1:]
+ 
+#loop through each row
+for index2, value2 in enumerate(csvcontents2):
+    #format each row into a string that can be read by json
+    csvcontents2[index2] = '[' + csvcontents2[index2] + ']'
+    #use json to convert the current row into an actual 2D array
+    csvcontents2[index2] = json.loads(csvcontents2[index2])
+ 
+#declare a new array called indwithrow
+indwithrow = []
+ 
+ 
+#parent array
+for indrowindex, indvalues in enumerate(ind):
+    #indvalues = indvalues + dist[indrowindex]
+    indwithrow.append([])
+    for childitemindex, childitem in enumerate(ind[indrowindex]):
+        csvcontents2row = csvcontents2[childitem]
+        #csvcontents2row.append(dist[indrowindex][childitemindex])
+        indwithrow[indrowindex].append(csvcontents2row)
+ 
+#write results of data from nearest neighbours to new csv
+firstneigh=pd.DataFrame(indwithrow)
+firstneigh.to_csv('neigha3nh.csv', index =True)
+ 
+#write distances of nearest neighbours to new csv
+firstneighdist =pd.DataFrame(dist)
+firstneighdist.to_csv('neigha3nhdist.csv', index =True)
+ 
