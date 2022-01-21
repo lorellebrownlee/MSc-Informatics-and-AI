@@ -1,0 +1,24 @@
+import numpy as np
+import json
+import math
+import shapely
+from shapely.geometry import Point, LineString, Polygon, shape
+from shapely import wkt
+import csv
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+import pandas as pd
+from pandas import DataFrame
+ 
+ 
+#open the amended csv file
+csvcontents = pd.read_csv('1596edit.csv')
+#convert the csv file to a pandas dataframe
+csvcontentsnew =pd.DataFrame(csvcontents)
+#convert the contents of the pandas dataframe to numerics
+csvcontentsnew.apply(pd.to_numeric)
+ 
+# delete all rows with values outside of specified ranges
+indexNames = csvcontentsnew[(csvcontentsnew[:] > 95568) & (csvcontentsnew[:] < 44669) & (45069< csvcontentsnew[:] < 95168)].index
+ 
+csvcontentsnew.drop(indexNames , inplace=True)
